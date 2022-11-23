@@ -551,14 +551,14 @@ if __name__ == "__main__":
     if uvloop is not None:
         uvloop.install()
 
-        asyncio.run(
-            main(
-                configuration=configuration,
-                urls=args.url,
-                data=args.data,
-                include=args.include,
-                output_dir=args.output_dir,
-                local_port=args.local_port,
-                zero_rtt=args.zero_rtt,
-            )
+    asyncio.run(
+        main(
+            configuration=configuration,
+            urls=args.url,
+            data=args.data,
+            include=args.include,
+            output_dir=args.output_dir,
+            local_port=args.local_port,
+            zero_rtt=args.zero_rtt,
         )
+    )
