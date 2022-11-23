@@ -551,9 +551,6 @@ if __name__ == "__main__":
     if uvloop is not None:
         uvloop.install()
 
-    # Manipulate SETTINGS Frame Buffer Capacity
-    for cap in range(512, 1024):
-        SETTINGS_FRAME_BUFFER_CAPACITY = cap
         asyncio.run(
             main(
                 configuration=configuration,
