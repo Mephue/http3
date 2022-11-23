@@ -329,7 +329,7 @@ class H3Connection:
         self._peer_decoder_stream_id: Optional[int] = None
         self._peer_encoder_stream_id: Optional[int] = None
         self._received_settings: Optional[Dict[int, int]] = None
-        self._sent_settings: Optional[Dict[int, int]] = None
+        self._sent_settings: Optional[Dict[int, str]] = None
 
         self._init_connection()
 
@@ -565,6 +565,7 @@ class H3Connection:
             Setting.QPACK_BLOCKED_STREAMS: self._blocked_streams,
             Setting.ENABLE_CONNECT_PROTOCOL: 1,
             Setting.DUMMY: 1,
+            Setting.MAX_FIELD_SECTION_SIZE: "Let me create a Crash please"
         }
         if self._enable_webtransport:
             settings[Setting.H3_DATAGRAM] = 1
