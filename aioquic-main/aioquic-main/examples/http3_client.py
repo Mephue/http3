@@ -216,7 +216,7 @@ class HttpClient(QuicConnectionProtocol):
         if self._http is not None:
             for http_event in self._http.handle_event(event):
                 self.http_event_received(http_event)
-
+# Trying to send two Requests on a Request Stream
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
         self._http.send_headers(
@@ -233,6 +233,11 @@ class HttpClient(QuicConnectionProtocol):
         )
         if request.content:
             self._http.send_data(
+                stream_id=stream_id, data=request.content, end_stream=False
+            )
+
+        # Trying to send another Request here:
+        self._http.send_data(
                 stream_id=stream_id, data=request.content, end_stream=True
             )
 
