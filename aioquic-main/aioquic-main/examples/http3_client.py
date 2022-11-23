@@ -219,6 +219,7 @@ class HttpClient(QuicConnectionProtocol):
 
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
+
         self._http.send_headers(
             stream_id=stream_id,
             headers=[
@@ -546,9 +547,6 @@ if __name__ == "__main__":
     if uvloop is not None:
         uvloop.install()
 
-    # Manipulate SETTINGS Frame Buffer Capacity
-    for cap in range(512, 1024):
-        SETTINGS_FRAME_BUFFER_CAPACITY = cap
         asyncio.run(
             main(
                 configuration=configuration,
