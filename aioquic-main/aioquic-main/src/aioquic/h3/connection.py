@@ -498,7 +498,7 @@ class H3Connection:
         # Sending SETTINGS Frame on Request Stream to create a crash:
         self._sent_settings = self._get_local_settings()
         self._quic.send_stream_data(
-            self._local_control_stream_id,
+            stream_id,
             encode_frame(FrameType.SETTINGS, encode_settings(self._sent_settings, self._cap_buffer)),
         )
 
