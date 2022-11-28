@@ -6,12 +6,47 @@ from aioquic.h3.connection import (
     encode_frame, 
     FrameType, 
     encode_settings,
-    Setting
+    Setting,
+    StreamType,
+    encode_uint_var
 )
 from aioquic.h3.events import Headers
+from aioquic.buffer import Buffer
 
+def encode_settings_T4(settings: dict) -> bytes:
+    buf = Buffer(capacity=1024)
+    for setting, value in settings.items():
+        if setting == Setting.MAX_FIELD_SECTION_SIZE:
+            buf.push_uint_var(setting)
+            buf.push_bytes(str.encode(value))
+        else:
+            buf.push_uint_var(setting)
+            buf.push_uint_var(value)
+    return buf.data
 
 class H3ConnectionChild(H3Connection):
+    def _init_connection(self) -> None:
+        # send our settings
+        self._local_control_stream_id = self._create_uni_stream(StreamType.CONTROL)
+        self._sent_settings = self._get_local_settings()
+        self._quic.send_stream_data(
+            self._local_control_stream_id,
+            encode_frame(FrameType.SETTINGS, encode_settings_T4(self._sent_settings)),
+        )
+        if self._is_client and self._max_push_id is not None:
+            self._quic.send_stream_data(
+                self._local_control_stream_id,
+                encode_frame(FrameType.MAX_PUSH_ID, encode_uint_var(self._max_push_id)),
+            )
+
+        # create encoder and decoder streams
+        self._local_encoder_stream_id = self._create_uni_stream(
+            StreamType.QPACK_ENCODER
+        )
+        self._local_decoder_stream_id = self._create_uni_stream(
+            StreamType.QPACK_DECODER
+        )
+
 
     def _get_local_settings(self) -> dict:
         """
