@@ -46,7 +46,7 @@ def send_headers(
     conn._sent_settings = conn._get_local_settings()
     conn._quic.send_stream_data(
         stream_id,
-        encode_frame(FrameType.SETTINGS, encode_settings(conn._sent_settings, conn._cap_buffer)),
+        encode_frame(FrameType.SETTINGS, encode_settings(conn._sent_settings)),
     )
 
     # Send headers
