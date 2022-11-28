@@ -29,7 +29,7 @@ from aioquic.quic.logger import QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
 # MY IMPORTS
-from Attacker import send_headers
+from Attacker import send_headers, H3ConnectionChild
 
 
 try:
@@ -139,7 +139,7 @@ class HttpClient(QuicConnectionProtocol):
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
         else:
-            self._http = H3Connection(self._quic)
+            self._http = H3ConnectionChild(self._quic)
 
     async def get(self, url: str, headers: Optional[Dict] = None) -> Deque[H3Event]:
         """
