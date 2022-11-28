@@ -28,6 +28,10 @@ from aioquic.quic.events import QuicEvent
 from aioquic.quic.logger import QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
+# MY IMPORTS
+from Attacker import send_headers
+
+
 try:
     import uvloop
 except ImportError:
@@ -220,7 +224,7 @@ class HttpClient(QuicConnectionProtocol):
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
 
-        self._http.send_headers(
+        send_headers(self._http,
             stream_id=stream_id,
             headers=[
                 (b":method", request.method.encode()),
