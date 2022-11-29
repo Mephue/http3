@@ -12,6 +12,7 @@ from aioquic.h3.connection import (
 )
 from aioquic.h3.events import Headers
 from aioquic.buffer import Buffer
+from http3_client import HttpClient
 
 def encode_settings_T4(settings: dict) -> bytes:
     buf = Buffer(capacity=1024)
@@ -23,6 +24,7 @@ def encode_settings_T4(settings: dict) -> bytes:
             buf.push_uint_var(setting)
             buf.push_uint_var(value)
     return buf.data
+
 
 class H3ConnectionChild(H3Connection):
     def _init_connection(self) -> None:
@@ -65,7 +67,7 @@ class H3ConnectionChild(H3Connection):
         return settings
 
 # Sending SETTINGS Frame on Request Stream to create a crash
-def send_headers(
+def send_headers_settings(
     conn: H3Connection, stream_id: int, headers: Headers, end_stream: bool = False
 ) -> None:
     """
