@@ -139,7 +139,7 @@ class HttpClient(QuicConnectionProtocol):
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
         else:
-            self._http = H3ConnectionChild(self._quic)
+            self._http = H3Connection(self._quic)
 
     async def get(self, url: str, headers: Optional[Dict] = None) -> Deque[H3Event]:
         """
@@ -248,6 +248,49 @@ class HttpClient(QuicConnectionProtocol):
 
         return await asyncio.shield(waiter)
 
+class HttpClientCorruptT4(HttpClient):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.pushes: Dict[int, Deque[H3Event]] = {}
+        self._http: Optional[HttpConnection] = None
+        self._request_events: Dict[int, Deque[H3Event]] = {}
+        self._request_waiter: Dict[int, asyncio.Future[Deque[H3Event]]] = {}
+        self._websockets: Dict[int, WebSocket] = {}
+
+        if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
+            self._http = H0Connection(self._quic)
+        else:
+            self._http = H3ConnectionChild(self._quic)
+
+class HttpClientCorruptT9(HttpClient):
+    async def _request(self, request: HttpRequest) -> Deque[H3Event]:
+        stream_id = self._quic.get_next_available_stream_id()
+
+        # Trying to send SETTINGS and HEADER Frame on Request Stream
+        send_headers(self._http,
+            stream_id=stream_id,
+            headers=[
+                (b":method", request.method.encode()),
+                (b":scheme", request.url.scheme.encode()),
+                (b":authority", request.url.authority.encode()),
+                (b":path", request.url.full_path.encode()),
+                (b"user-agent", USER_AGENT.encode()),
+            ]
+            + [(k.encode(), v.encode()) for (k, v) in request.headers.items()],
+            end_stream=not request.content,
+        )
+        if request.content:
+            self._http.send_data(
+                stream_id=stream_id, data=request.content, end_stream=True
+            )
+
+        waiter = self._loop.create_future()
+        self._request_events[stream_id] = deque()
+        self._request_waiter[stream_id] = waiter
+        self.transmit()
+
+        return await asyncio.shield(waiter)
 
 async def perform_http_request(
     client: HttpClient,
@@ -350,6 +393,17 @@ def save_session_ticket(ticket: SessionTicket) -> None:
         with open(args.session_ticket, "wb") as fp:
             pickle.dump(ticket, fp)
 
+async def create_http_client(host, port, local_port, zero_rtt, class_2_cast) -> HttpClient:
+    async with connect(
+    host,
+    port,
+    configuration=configuration,
+    create_protocol=HttpClient,
+    session_ticket_handler=save_session_ticket,
+    local_port=local_port,
+    wait_connected=not zero_rtt,
+    ) as client:
+        return cast(class_2_cast, client)
 
 async def main(
     configuration: QuicConfiguration,
@@ -391,46 +445,61 @@ async def main(
         _p = urlparse(_p.geturl())
         urls[i] = _p.geturl()
 
-    async with connect(
-        host,
-        port,
-        configuration=configuration,
-        create_protocol=HttpClient,
-        session_ticket_handler=save_session_ticket,
-        local_port=local_port,
-        wait_connected=not zero_rtt,
-    ) as client:
-        client = cast(HttpClient, client)
 
-        if parsed.scheme == "wss":
-            ws = await client.websocket(urls[0], subprotocols=["chat", "superchat"])
+    # Normal Connection Test
+    client = create_http_client(host, port, local_port, zero_rtt, HttpClient)
 
-            # send some messages and receive reply
-            for i in range(2):
-                message = "Hello {}, WebSocket!".format(i)
-                print("> " + message)
-                await ws.send(message)
+    coros = [
+            perform_http_request(
+                client=client,
+                url=url,
+                data=data,
+                include=include,
+                output_dir=output_dir,
+            )
+            for url in urls
+        ]
+    await asyncio.gather(*coros)
 
-                message = await ws.recv()
-                print("< " + message)
+    # process http pushes
+    process_http_pushes(client=client, include=include, output_dir=output_dir)
+    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
 
-            await ws.close()
-        else:
-            # perform request
-            coros = [
-                perform_http_request(
-                    client=client,
-                    url=url,
-                    data=data,
-                    include=include,
-                    output_dir=output_dir,
-                )
-                for url in urls
-            ]
-            await asyncio.gather(*coros)
 
-            # process http pushes
-            process_http_pushes(client=client, include=include, output_dir=output_dir)
+    for i in range (1, 10):
+        print("Starting Test T" + i + "\r\n" )
+
+        # Creating HTTP Client for Test
+
+        # Execute Test for Testround
+        if i == 1:
+            continue
+        elif i == 2:
+            continue
+        elif i == 3:
+            continue
+        elif i == 4:
+            client = create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
+            continue
+        elif i == 9:
+            client = create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
+
+
+                # perform request
+        coros = [
+            perform_http_request(
+                client=client,
+                url=url,
+                data=data,
+                include=include,
+                output_dir=output_dir,
+            )
+            for url in urls
+        ]
+        await asyncio.gather(*coros)
+
+        # process http pushes
+        process_http_pushes(client=client, include=include, output_dir=output_dir)
         client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
 
 
