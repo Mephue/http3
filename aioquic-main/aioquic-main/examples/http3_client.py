@@ -479,10 +479,9 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
-            client = create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
-            continue
+            client = await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
         elif i == 9:
-            client = create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
+            client = await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
 
 
                 # perform request
