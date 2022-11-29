@@ -16,7 +16,7 @@ import aioquic
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.h0.connection import H0_ALPN, H0Connection
-from aioquic.h3.connection import H3_ALPN, ErrorCode, H3Connection
+from aioquic.h3.connection import H3_ALPN, ErrorCode, H3Connection, send_headers
 from aioquic.h3.events import (
     DataReceived,
     H3Event,
@@ -29,7 +29,7 @@ from aioquic.quic.logger import QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
 # MY IMPORTS
-from Attacker import send_headers, H3ConnectionChild
+from Attacker import send_headers_settings, H3ConnectionChild
 
 
 try:
@@ -268,7 +268,7 @@ class HttpClientCorruptT9(HttpClient):
         stream_id = self._quic.get_next_available_stream_id()
 
         # Trying to send SETTINGS and HEADER Frame on Request Stream
-        send_headers(self._http,
+        send_headers_settings(self._http,
             stream_id=stream_id,
             headers=[
                 (b":method", request.method.encode()),
