@@ -445,6 +445,7 @@ async def main(
         _p = urlparse(_p.geturl())
         urls[i] = _p.geturl()
 
+    print("Starting Test Normal" + "\r\n" )
 
     # Normal Connection Test
     client = await create_http_client(host, port, local_port, zero_rtt, HttpClient)
