@@ -16,7 +16,7 @@ import aioquic
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.h0.connection import H0_ALPN, H0Connection
-from aioquic.h3.connection import H3_ALPN, ErrorCode, H3Connection, send_headers
+from aioquic.h3.connection import H3_ALPN, ErrorCode, H3Connection
 from aioquic.h3.events import (
     DataReceived,
     H3Event,
@@ -224,7 +224,7 @@ class HttpClient(QuicConnectionProtocol):
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
 
-        send_headers(self._http,
+        self._http.send_headers(self._http,
             stream_id=stream_id,
             headers=[
                 (b":method", request.method.encode()),
