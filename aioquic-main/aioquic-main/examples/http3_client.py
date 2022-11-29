@@ -293,7 +293,7 @@ class HttpClientCorruptT9(HttpClient):
         return await asyncio.shield(waiter)
 
 async def perform_http_request(
-    client: HttpClient,
+    client,
     url: str,
     data: Optional[str],
     include: bool,
