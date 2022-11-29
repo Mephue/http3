@@ -447,7 +447,7 @@ async def main(
 
 
     # Normal Connection Test
-    client = create_http_client(host, port, local_port, zero_rtt, HttpClient)
+    client = await create_http_client(host, port, local_port, zero_rtt, HttpClient)
 
     coros = [
             perform_http_request(
@@ -479,9 +479,9 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
-            client =  create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
+            client =  await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
         elif i == 9:
-            client =  create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
+            client =  await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
 
 
                 # perform request
