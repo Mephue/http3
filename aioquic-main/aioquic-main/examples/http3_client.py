@@ -223,8 +223,8 @@ class HttpClient(QuicConnectionProtocol):
 
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
-        print("STREAM ID?" + stream_id)
-        self._http.send_headers(self,
+
+        self._http.send_headers(
             stream_id=stream_id,
             headers=[
                 (b":method", request.method.encode()),
