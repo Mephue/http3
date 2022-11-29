@@ -12,7 +12,6 @@ from aioquic.h3.connection import (
 )
 from aioquic.h3.events import Headers
 from aioquic.buffer import Buffer
-from http3_client import HttpClient
 
 def encode_settings_T4(settings: dict) -> bytes:
     buf = Buffer(capacity=1024)
