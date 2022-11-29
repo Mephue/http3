@@ -393,12 +393,12 @@ def save_session_ticket(ticket: SessionTicket) -> None:
         with open(args.session_ticket, "wb") as fp:
             pickle.dump(ticket, fp)
 
-def create_http_client(host, port, local_port, zero_rtt, class_2_cast) -> HttpClient:
+def create_http_client(host, port, local_port, zero_rtt, class_2_cast):
     with connect(
     host,
     port,
     configuration=configuration,
-    create_protocol=HttpClient,
+    create_protocol=class_2_cast,
     session_ticket_handler=save_session_ticket,
     local_port=local_port,
     wait_connected=not zero_rtt,
