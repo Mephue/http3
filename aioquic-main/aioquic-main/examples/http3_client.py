@@ -293,7 +293,7 @@ class HttpClientCorruptT9(HttpClient):
         return await asyncio.shield(waiter)
 
 async def perform_http_request(
-    client,
+    client: HttpClient,
     url: str,
     data: Optional[str],
     include: bool,
@@ -393,8 +393,8 @@ def save_session_ticket(ticket: SessionTicket) -> None:
         with open(args.session_ticket, "wb") as fp:
             pickle.dump(ticket, fp)
 
-async def create_http_client(host, port, local_port, zero_rtt, class_2_cast) -> HttpClient:
-    async with connect(
+def create_http_client(host, port, local_port, zero_rtt, class_2_cast) -> HttpClient:
+    with connect(
     host,
     port,
     configuration=configuration,
@@ -479,9 +479,9 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
-            client = await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
+            client =  create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
         elif i == 9:
-            client = await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
+            client =  create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
 
 
                 # perform request
