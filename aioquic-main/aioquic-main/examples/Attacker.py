@@ -12,13 +12,14 @@ from aioquic.h3.connection import (
 )
 from aioquic.h3.events import Headers
 from aioquic.buffer import Buffer
+from aioquic.quic.connection import QuicConnection
 
-def encode_settings_T4(settings: dict) -> bytes:
+def encode_settings_T4(settings: dict, settings_value) -> bytes:
     buf = Buffer(capacity=1024)
     for setting, value in settings.items():
         if setting == Setting.MAX_FIELD_SECTION_SIZE:
             buf.push_uint_var(setting)
-            buf.push_bytes(str.encode(value))
+            buf.push_bytes(settings_value)
         else:
             buf.push_uint_var(setting)
             buf.push_uint_var(value)
@@ -26,13 +27,17 @@ def encode_settings_T4(settings: dict) -> bytes:
 
 
 class H3ConnectionChild(H3Connection):
+    def __init__(self, quic: QuicConnection,  cap_buffer: int, settings_value, enable_webtransport: bool = False) -> None:
+        self._settings_value = settings_value
+        super.__init__(quic, cap_buffer, enable_webtransport)
+
     def _init_connection(self) -> None:
         # send our settings
         self._local_control_stream_id = self._create_uni_stream(StreamType.CONTROL)
         self._sent_settings = self._get_local_settings()
         self._quic.send_stream_data(
             self._local_control_stream_id,
-            encode_frame(FrameType.SETTINGS, encode_settings_T4(self._sent_settings)),
+            encode_frame(FrameType.SETTINGS, encode_settings_T4(self._sent_settings, settings_value=self._settings_value)),
         )
         if self._is_client and self._max_push_id is not None:
             self._quic.send_stream_data(

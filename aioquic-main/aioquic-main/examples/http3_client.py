@@ -30,7 +30,6 @@ from aioquic.tls import CipherSuite, SessionTicket
 
 # MY IMPORTS
 from Attacker import send_headers_settings, H3ConnectionChild
-import multiprocessing
 
 try:
     import uvloop
@@ -44,6 +43,7 @@ HttpConnection = Union[H0Connection, H3Connection]
 USER_AGENT = "aioquic/" + aioquic.__version__
 
 SETTINGS_FRAME_BUFFER_CAPACITY = 1024
+SETTINGS_VALUE = [2147483648, 4294967296,-4294967296,-2147483648, "x"*10, "x"*100, "x"*250, "x"*500, "x"*1000, "x"*2000, "A unicode \u018e string \xf1".encode('utf-8'), 1.012, 100.3, 1024.7]
 
 class URL:
     def __init__(self, url: str) -> None:
@@ -261,7 +261,7 @@ class HttpClientCorruptT4(HttpClient):
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
         else:
-            self._http = H3ConnectionChild(self._quic)
+            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE)
 
 class HttpClientCorruptT9(HttpClient):
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
@@ -491,34 +491,45 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
+            list_bytes = []
+            list_integer = [2147483648, 4294967296,-4294967296,-2147483648]
+            list_float = [1.012, 100.3, 1024.7]
+            list_strings = ["x"*10, "x"*100, "x"*250, "x"*500, "x"*1000, "x"*2000, "A unicode \u018e string \xf1"]
+            for some_integer in list_integer:
+                list_bytes.append(some_integer.to_bytes(length=min(some_integer.bit_length(), 1) + 7))
+
+            for some_string in list_strings:
+                list_bytes.append(some_string.encode('utf-8'))
             try:
-                async with connect(
-                    host,
-                    port,
-                    configuration=configuration,
-                    create_protocol=HttpClientCorruptT4,
-                    session_ticket_handler=save_session_ticket,
-                    local_port=local_port,
-                    wait_connected=not zero_rtt,
-                ) as client:
-                    client = cast(HttpClientCorruptT4, client)
+                for value in list_bytes:
+                    SETTINGS_VALUE = value
+                    async with connect(
+                        host,
+                        port,
+                        configuration=configuration,
+                        create_protocol=HttpClientCorruptT4,
+                        session_ticket_handler=save_session_ticket,
+                        local_port=local_port,
+                        wait_connected=not zero_rtt,
+                    ) as client:
+                        client = cast(HttpClientCorruptT4, client)
 
-                    coros = [
-                            perform_http_request(
-                                client=client,
-                                url=url,
-                                data=data,
-                                include=include,
-                                output_dir=output_dir,
-                            )
-                            for url in urls
-                        ]
+                        coros = [
+                                perform_http_request(
+                                    client=client,
+                                    url=url,
+                                    data=data,
+                                    include=include,
+                                    output_dir=output_dir,
+                                )
+                                for url in urls
+                            ]
 
-                    await asyncio.gather(*coros, True)
+                        await asyncio.gather(*coros, True)
 
-                    # process http pushes
-                    process_http_pushes(client=client, include=include, output_dir=output_dir)
-                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                        # process http pushes
+                        process_http_pushes(client=client, include=include, output_dir=output_dir)
+                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
             except TypeError:
                 continue
         elif i == 9:
@@ -551,6 +562,8 @@ async def main(
                     process_http_pushes(client=client, include=include, output_dir=output_dir)
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
             except TypeError:
+                continue
+            except Exception:
                 continue
 
 
