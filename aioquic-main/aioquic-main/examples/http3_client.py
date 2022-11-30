@@ -478,7 +478,7 @@ async def main(
 
 
     for i in range (1, 10):
-        print("Starting Test T" + i + "\r\n" )
+        print("Starting Test T" + str(i) + "\r\n" )
 
         # Creating HTTP Client for Test
 
