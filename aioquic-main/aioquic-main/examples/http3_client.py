@@ -515,7 +515,7 @@ async def main(
                         ]
                     print("DONE1")
 
-                    await asyncio.gather(*coros)
+                    await asyncio.gather(*coros, True)
                     print("DONE2")
 
                     # process http pushes
