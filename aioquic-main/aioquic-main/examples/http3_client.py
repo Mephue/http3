@@ -522,7 +522,7 @@ async def main(
                     process_http_pushes(client=client, include=include, output_dir=output_dir)
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 print("DONE")
-            except KeyboardInterrupt:
+            except TypeError:
                 continue
         elif i == 9:
             async with connect(
