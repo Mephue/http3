@@ -30,7 +30,7 @@ from aioquic.tls import CipherSuite, SessionTicket
 
 # MY IMPORTS
 from Attacker import send_headers_settings, H3ConnectionChild
-
+import multiprocessing
 
 try:
     import uvloop
@@ -393,6 +393,8 @@ def save_session_ticket(ticket: SessionTicket) -> None:
         with open(args.session_ticket, "wb") as fp:
             pickle.dump(ticket, fp)
 
+    
+
 async def create_http_client(host, port, local_port, zero_rtt, class_2_cast):
     async with connect(
     host,
@@ -404,6 +406,7 @@ async def create_http_client(host, port, local_port, zero_rtt, class_2_cast):
     wait_connected=not zero_rtt,
     ) as client:
         return cast(class_2_cast, client)
+
 
 async def main(
     configuration: QuicConfiguration,
@@ -490,32 +493,33 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
-            async with connect(
-                host,
-                port,
-                configuration=configuration,
-                create_protocol=HttpClientCorruptT4,
-                session_ticket_handler=save_session_ticket,
-                local_port=local_port,
-                wait_connected=not zero_rtt,
-            ) as client:
-                client = cast(HttpClientCorruptT4, client)
+            async with asyncio.timeout(10):
+                async with connect(
+                    host,
+                    port,
+                    configuration=configuration,
+                    create_protocol=HttpClientCorruptT4,
+                    session_ticket_handler=save_session_ticket,
+                    local_port=local_port,
+                    wait_connected=not zero_rtt,
+                ) as client:
+                    client = cast(HttpClientCorruptT4, client)
 
-                coros = [
-                        perform_http_request(
-                            client=client,
-                            url=url,
-                            data=data,
-                            include=include,
-                            output_dir=output_dir,
-                        )
-                        for url in urls
-                    ]
-                await asyncio.gather(*coros)
+                    coros = [
+                            perform_http_request(
+                                client=client,
+                                url=url,
+                                data=data,
+                                include=include,
+                                output_dir=output_dir,
+                            )
+                            for url in urls
+                        ]
+                    await asyncio.gather(*coros)
 
-                # process http pushes
-                process_http_pushes(client=client, include=include, output_dir=output_dir)
-            client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                    # process http pushes
+                    process_http_pushes(client=client, include=include, output_dir=output_dir)
+                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
         elif i == 9:
             async with connect(
                 host,
