@@ -451,13 +451,13 @@ async def main(
     # Normal Connection Test
 
     async with connect(
-    host,
-    port,
-    configuration=configuration,
-    create_protocol=HttpClient,
-    session_ticket_handler=save_session_ticket,
-    local_port=local_port,
-    wait_connected=not zero_rtt,
+        host,
+        port,
+        configuration=configuration,
+        create_protocol=HttpClient,
+        session_ticket_handler=save_session_ticket,
+        local_port=local_port,
+        wait_connected=not zero_rtt,
     ) as client:
         client = cast(HttpClient, client)
 
@@ -470,7 +470,7 @@ async def main(
                     output_dir=output_dir,
                 )
                 for url in urls
-            ]
+        ]
         await asyncio.gather(*coros)
 
         # process http pushes
