@@ -448,22 +448,32 @@ async def main(
     print("Starting Test Normal" + "\r\n" )
 
     # Normal Connection Test
-    client = await create_http_client(host, port, local_port, zero_rtt, HttpClient)
 
-    coros = [
-            perform_http_request(
-                client=client,
-                url=url,
-                data=data,
-                include=include,
-                output_dir=output_dir,
-            )
-            for url in urls
-        ]
-    await asyncio.gather(*coros)
+    async with connect(
+    host,
+    port,
+    configuration=configuration,
+    create_protocol=HttpClient,
+    session_ticket_handler=save_session_ticket,
+    local_port=local_port,
+    wait_connected=not zero_rtt,
+    ) as client:
+        client = cast(HttpClient, client)
 
-    # process http pushes
-    process_http_pushes(client=client, include=include, output_dir=output_dir)
+        coros = [
+                perform_http_request(
+                    client=client,
+                    url=url,
+                    data=data,
+                    include=include,
+                    output_dir=output_dir,
+                )
+                for url in urls
+            ]
+        await asyncio.gather(*coros)
+
+        # process http pushes
+        process_http_pushes(client=client, include=include, output_dir=output_dir)
     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
 
 
@@ -480,27 +490,59 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
-            client =  await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT4)
+            async with connect(
+                host,
+                port,
+                configuration=configuration,
+                create_protocol=HttpClientCorruptT4,
+                session_ticket_handler=save_session_ticket,
+                local_port=local_port,
+                wait_connected=not zero_rtt,
+            ) as client:
+                client = cast(HttpClientCorruptT4, client)
+
+                coros = [
+                        perform_http_request(
+                            client=client,
+                            url=url,
+                            data=data,
+                            include=include,
+                            output_dir=output_dir,
+                        )
+                        for url in urls
+                    ]
+                await asyncio.gather(*coros)
+
+                # process http pushes
+                process_http_pushes(client=client, include=include, output_dir=output_dir)
+            client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
         elif i == 9:
-            client =  await create_http_client(host, port, local_port, zero_rtt, HttpClientCorruptT9)
+            async with connect(
+                host,
+                port,
+                configuration=configuration,
+                create_protocol=HttpClientCorruptT4,
+                session_ticket_handler=save_session_ticket,
+                local_port=local_port,
+                wait_connected=not zero_rtt,
+            ) as client:
+                client = cast(HttpClientCorruptT9, client)
 
+                coros = [
+                        perform_http_request(
+                            client=client,
+                            url=url,
+                            data=data,
+                            include=include,
+                            output_dir=output_dir,
+                        )
+                        for url in urls
+                    ]
+                await asyncio.gather(*coros)
 
-                # perform request
-        coros = [
-            perform_http_request(
-                client=client,
-                url=url,
-                data=data,
-                include=include,
-                output_dir=output_dir,
-            )
-            for url in urls
-        ]
-        await asyncio.gather(*coros)
-
-        # process http pushes
-        process_http_pushes(client=client, include=include, output_dir=output_dir)
-        client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                # process http pushes
+                process_http_pushes(client=client, include=include, output_dir=output_dir)
+            client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
 
 
 if __name__ == "__main__":
