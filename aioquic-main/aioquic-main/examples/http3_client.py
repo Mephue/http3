@@ -513,8 +513,10 @@ async def main(
                             )
                             for url in urls
                         ]
+                    print("DONE1")
 
                     await asyncio.gather(*coros)
+                    print("DONE2")
 
                     # process http pushes
                     process_http_pushes(client=client, include=include, output_dir=output_dir)
