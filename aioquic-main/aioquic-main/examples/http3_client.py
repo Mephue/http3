@@ -505,8 +505,10 @@ async def main(
 
             for some_string in list_strings:
                 list_bytes.append(some_string.encode('utf-8'))
-            try:
-                for value in list_bytes:
+            
+            for value in list_bytes:
+                try:
+                    global SETTINGS_VALUE 
                     SETTINGS_VALUE = value
                     async with connect(
                         host,
@@ -520,23 +522,23 @@ async def main(
                         client = cast(HttpClientCorruptT4, client)
 
                         coros = [
-                                perform_http_request(
-                                    client=client,
-                                    url=url,
-                                    data=data,
-                                    include=include,
-                                    output_dir=output_dir,
-                                )
-                                for url in urls
-                            ]
+                                    perform_http_request(
+                                        client=client,
+                                        url=url,
+                                        data=data,
+                                        include=include,
+                                        output_dir=output_dir,
+                                    )
+                                    for url in urls
+                                ]
 
                         await asyncio.gather(*coros, True)
 
                         # process http pushes
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
-            except TypeError:
-                continue
+                except TypeError:
+                    continue
         elif i == 9:
             try:
                 async with connect(
@@ -568,7 +570,7 @@ async def main(
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
             except TypeError:
                 continue
-            except Exception:
+            except NameError:
                 continue
 
 
