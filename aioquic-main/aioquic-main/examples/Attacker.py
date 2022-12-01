@@ -29,7 +29,7 @@ def encode_settings_T4(settings: dict, settings_value) -> bytes:
 class H3ConnectionChild(H3Connection):
     def __init__(self, quic: QuicConnection,  cap_buffer: int, settings_value, enable_webtransport: bool = False) -> None:
         self._settings_value = settings_value
-        super.__init__(quic=quic, cap_buffer=cap_buffer, enable_webtransport=enable_webtransport)
+        super().__init__(quic=quic, cap_buffer=cap_buffer, enable_webtransport=enable_webtransport)
 
     def _init_connection(self) -> None:
         # send our settings
