@@ -510,6 +510,7 @@ async def main(
             
             for value in list_bytes:
                 try:
+                    print("Start Value", value)
                     global SETTINGS_VALUE 
                     SETTINGS_VALUE = value
                     async with connect(
