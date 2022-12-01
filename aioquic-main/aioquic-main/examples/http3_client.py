@@ -506,6 +506,8 @@ async def main(
             for some_string in list_strings:
                 list_bytes.append(some_string.encode('utf-8'))
             
+            print("Values in List ", list_bytes)
+            
             for value in list_bytes:
                 try:
                     global SETTINGS_VALUE 
