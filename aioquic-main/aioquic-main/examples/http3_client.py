@@ -496,7 +496,10 @@ async def main(
             list_float = [1.012, 100.3, 1024.7]
             list_strings = ["x"*10, "x"*100, "x"*250, "x"*500, "x"*1000, "x"*2000, "A unicode \u018e string \xf1"]
             for some_integer in list_integer:
-                list_bytes.append(some_integer.to_bytes(length=min(some_integer.bit_length(), 1) + 7, byteorder='big'))
+                if some_integer > 0:
+                    list_bytes.append(some_integer.to_bytes(length=min(some_integer.bit_length(), 1) + 7, byteorder='big'))
+                else:
+                    list_bytes.append(some_integer.to_bytes(length=(8 + (some_integer + (some_integer < 0 )).bit_length()) // 8, byteorder='big'))
 
             for some_string in list_strings:
                 list_bytes.append(some_string.encode('utf-8'))
