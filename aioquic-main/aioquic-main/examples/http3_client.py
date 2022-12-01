@@ -30,6 +30,7 @@ from aioquic.tls import CipherSuite, SessionTicket
 
 # MY IMPORTS
 from Attacker import send_headers_settings, H3ConnectionChild
+import ctypes
 
 try:
     import uvloop
@@ -496,10 +497,11 @@ async def main(
             list_float = [1.012, 100.3, 1024.7]
             list_strings = ["x"*10, "x"*100, "x"*250, "x"*500, "x"*1000, "x"*2000, "A unicode \u018e string \xf1"]
             for some_integer in list_integer:
+                print("Check Integer: ", some_integer)
                 if some_integer > 0:
-                    list_bytes.append(some_integer.to_bytes(length=min(some_integer.bit_length(), 1) + 7, byteorder='big'))
+                    list_bytes.append(bytes(ctypes.c_int(some_integer)))
                 else:
-                    list_bytes.append(some_integer.to_bytes(length=(8 + (some_integer + (some_integer < 0 )).bit_length()) // 8, byteorder='big'))
+                    list_bytes.append(bytes(ctypes.c_uint(some_integer)))
 
             for some_string in list_strings:
                 list_bytes.append(some_string.encode('utf-8'))
