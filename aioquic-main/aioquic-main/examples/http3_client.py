@@ -251,7 +251,7 @@ class HttpClient(QuicConnectionProtocol):
 
 class HttpClientCorruptT4(HttpClient):
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        super().super().__init__(*args, **kwargs)
 
         self.pushes: Dict[int, Deque[H3Event]] = {}
         self._http: Optional[HttpConnection] = None
