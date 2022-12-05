@@ -15,7 +15,7 @@ from aioquic.buffer import Buffer
 from aioquic.quic.connection import QuicConnection
 
 def encode_settings_T4(settings: dict, settings_value) -> bytes:
-    buf = Buffer(capacity=1024)
+    buf = Buffer(capacity=4096)
     for setting, value in settings.items():
         if setting == Setting.MAX_FIELD_SECTION_SIZE:
             buf.push_uint_var(setting)
