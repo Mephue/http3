@@ -542,6 +542,7 @@ async def main(
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 except TypeError:
+                    print("Type Error occured on")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
         elif i == 9:
