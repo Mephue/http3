@@ -597,6 +597,7 @@ async def main(
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 except TypeError:
                     print("Type Error occured")
+                    time.sleep(5)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
         elif i == 5:
