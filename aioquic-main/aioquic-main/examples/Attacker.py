@@ -11,24 +11,35 @@ from aioquic.h3.connection import (
     encode_uint_var
 )
 from aioquic.h3.events import Headers
-from aioquic.buffer import Buffer
+from aioquic.buffer import Buffer, UINT_VAR_MAX_SIZE
 from aioquic.quic.connection import QuicConnection
 
-def encode_settings_T4(settings: dict, settings_value) -> bytes:
+def encode_settings_T4(settings: dict, settings_value, duplicate: int = 0) -> bytes:
     buf = Buffer(capacity=4096)
     for setting, value in settings.items():
         if setting == Setting.MAX_FIELD_SECTION_SIZE:
-            buf.push_uint_var(setting)
-            buf.push_bytes(settings_value)
+            for i in range(0,1 + duplicate):
+                buf.push_uint_var(setting)
+                buf.push_bytes(settings_value)
         else:
             buf.push_uint_var(setting)
             buf.push_uint_var(value)
     return buf.data
 
+def encode_frame_T7(frame_type: int, frame_data: bytes, length_offset: int) -> bytes:
+    frame_length = len(frame_data)
+    buf = Buffer(capacity=frame_length + 2 * UINT_VAR_MAX_SIZE)
+    buf.push_uint_var(frame_type)
+    buf.push_uint_var(frame_length + length_offset)
+    buf.push_bytes(frame_data)
+    return buf.data
 
 class H3ConnectionChild(H3Connection):
-    def __init__(self, quic: QuicConnection,  settings_value, enable_webtransport: bool = False) -> None:
+    def __init__(self, quic: QuicConnection,  settings_value, more_settings: dict = {},enable_webtransport: bool = False, duplicate: int = 0, length_offset: int = 0) -> None:
         self._settings_value = settings_value
+        self._more_settings = more_settings
+        self._duplicate = duplicate
+        self._length_offset = length_offset
         super().__init__(quic=quic, enable_webtransport=enable_webtransport)
 
     def _init_connection(self) -> None:
@@ -37,7 +48,7 @@ class H3ConnectionChild(H3Connection):
         self._sent_settings = self._get_local_settings()
         self._quic.send_stream_data(
             self._local_control_stream_id,
-            encode_frame(FrameType.SETTINGS, encode_settings_T4(self._sent_settings, settings_value=self._settings_value)),
+            encode_frame(FrameType.SETTINGS, encode_settings_T4(self._sent_settings, settings_value=self._settings_value, duplicate=self._duplicate)),
         )
         if self._is_client and self._max_push_id is not None:
             self._quic.send_stream_data(
@@ -65,10 +76,47 @@ class H3ConnectionChild(H3Connection):
             Setting.DUMMY: 1,
             Setting.MAX_FIELD_SECTION_SIZE: "Let me create a Crash please"
         }
+
+        settings = {**settings, **self._more_settings}
+
         if self._enable_webtransport:
             settings[Setting.H3_DATAGRAM] = 1
             settings[Setting.ENABLE_WEBTRANSPORT] = 1
         return settings
+
+    def send_data(self, stream_id: int, data: bytes, end_stream: bool) -> None:
+        """
+        Send data on the given stream.
+
+        To retrieve datagram which need to be sent over the network call the QUIC
+        connection's :meth:`~aioquic.connection.QuicConnection.datagrams_to_send`
+        method.
+
+        :param stream_id: The stream ID on which to send the data.
+        :param data: The data to send.
+        :param end_stream: Whether to end the stream.
+        """
+        # check DATA frame is allowed
+        stream = self._get_or_create_stream(stream_id)
+        if stream.headers_send_state != HeadersState.AFTER_HEADERS:
+            raise FrameUnexpected("DATA frame is not allowed in this state")
+
+        # log frame
+        if self._quic_logger is not None:
+            self._quic_logger.log_event(
+                category="http",
+                event="frame_created",
+                data=self._quic_logger.encode_http3_data_frame(
+                    length=len(data), stream_id=stream_id
+                ),
+            )
+
+        self._quic.send_stream_data(
+            stream_id, encode_frame_T7(FrameType.DATA, data, self._length_offset), end_stream
+        )
+
+
+    
 
 # Sending SETTINGS Frame on Request Stream to create a crash
 def send_headers_settings(
