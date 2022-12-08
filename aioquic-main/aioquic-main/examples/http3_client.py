@@ -560,7 +560,7 @@ async def main(
             dict_http2_settings = {0x1: 4096, 0x2: 0, 0x3: 2, 0x4: 256, 0x5: 256, 0x25: 123}
             for key, value in dict_http2_settings.items():
                 print("Start Key:Value", key, ":", value)
-                MORE_SETTINGS[key] = value
+                MORE_SETTINGS[key] = ctypes.c_int(value)
                 async with connect(
                         host,
                         port,
@@ -626,7 +626,7 @@ async def main(
             for value in list_offsets:
                 try:
                     print("Start Offset", value)
-                    LENGTH_OFFSET = value
+                    LENGTH_OFFSET = ctypes.c_int(value)
                     async with connect(
                         host,
                         port,
