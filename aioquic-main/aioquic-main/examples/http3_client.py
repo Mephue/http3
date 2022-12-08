@@ -44,7 +44,10 @@ HttpConnection = Union[H0Connection, H3Connection]
 USER_AGENT = "aioquic/" + aioquic.__version__
 
 SETTINGS_FRAME_BUFFER_CAPACITY = 1024
-SETTINGS_VALUE = [2147483648, 4294967296,-4294967296,-2147483648, "x"*10, "x"*100, "x"*250, "x"*500, "x"*1000, "x"*2000, "A unicode \u018e string \xf1".encode('utf-8'), 1.012, 100.3, 1024.7]
+SETTINGS_VALUE = 2048
+MORE_SETTINGS = {}
+DUPLICATE = 0
+LENGTH_OFFSET = 0
 
 class URL:
     def __init__(self, url: str) -> None:
@@ -262,7 +265,8 @@ class HttpClientCorruptT4(HttpClient):
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
         else:
-            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE)
+            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE, more_settings=MORE_SETTINGS, duplicate=DUPLICATE)
+
 
 class HttpClientCorruptT9(HttpClient):
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
@@ -479,10 +483,17 @@ async def main(
     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
 
 
+    global DUPLICATE 
+    global MORE_SETTINGS
+    global SETTINGS_VALUE 
+    global LENGTH_OFFSET
+
     for i in range (1, 10):
         print("Starting Test T" + str(i) + "\r\n" )
-
-        # Creating HTTP Client for Test
+        DUPLICATE = 0
+        MORE_SETTINGS = {}
+        SETTINGS_VALUE = 2048
+        LENGTH_OFFSET = 0
 
         # Execute Test for Testround
         if i == 1:
@@ -511,7 +522,6 @@ async def main(
             for value in list_bytes:
                 try:
                     print("Start Value", value)
-                    global SETTINGS_VALUE 
                     SETTINGS_VALUE = value
                     async with connect(
                         host,
@@ -545,6 +555,111 @@ async def main(
                     print("Type Error occured")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
+        elif i == 5:
+            # Sending HTTP2 Settings with some value
+            dict_http2_settings = {0x1: 4096, 0x2: 0, 0x3: 2, 0x4: 256, 0x5: 256, 0x25: 123}
+            for key, value in dict_http2_settings:
+                print("Start Key:Value", key, ":", value)
+                MORE_SETTINGS[key] = value
+                async with connect(
+                        host,
+                        port,
+                        configuration=configuration,
+                        create_protocol=HttpClientCorruptT4,
+                        session_ticket_handler=save_session_ticket,
+                        local_port=local_port,
+                        wait_connected=not zero_rtt,
+                ) as client:
+                    client = cast(HttpClientCorruptT4, client)
+
+                    coros = [
+                                perform_http_request(
+                                    client=client,
+                                    url=url,
+                                    data=data,
+                                    include=include,
+                                    output_dir=output_dir,
+                                )
+                                for url in urls
+                            ]
+                    print("Gather for ", value)
+
+                    await asyncio.gather(*coros, True)
+
+                    # process http pushes
+                    process_http_pushes(client=client, include=include, output_dir=output_dir)
+                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+        elif i == 6:
+            # Duplicate Setting in Settings Frame
+            DUPLICATE = 1
+            async with connect(
+                host,
+                port,
+                configuration=configuration,
+                create_protocol=HttpClientCorruptT4,
+                session_ticket_handler=save_session_ticket,
+                local_port=local_port,
+                wait_connected=not zero_rtt,
+            ) as client:
+                client = cast(HttpClientCorruptT4, client)
+
+                coros = [
+                            perform_http_request(
+                                client=client,
+                                url=url,
+                                data=data,
+                                include=include,
+                                output_dir=output_dir,
+                            )
+                            for url in urls
+                        ]
+                print("Gather for ", value)
+
+                await asyncio.gather(*coros, True)
+
+                # process http pushes
+                process_http_pushes(client=client, include=include, output_dir=output_dir)
+            client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+        elif i == 7:
+            list_offsets = [-1, -8, -16, 1, 8, 16, 4096]
+
+            for value in list_offsets:
+                try:
+                    print("Start Offset", value)
+                    LENGTH_OFFSET = value
+                    async with connect(
+                        host,
+                        port,
+                        configuration=configuration,
+                        create_protocol=HttpClientCorruptT4,
+                        session_ticket_handler=save_session_ticket,
+                        local_port=local_port,
+                        wait_connected=not zero_rtt,
+                    ) as client:
+                        client = cast(HttpClientCorruptT4, client)
+
+                        coros = [
+                                    perform_http_request(
+                                        client=client,
+                                        url=url,
+                                        data=data,
+                                        include=include,
+                                        output_dir=output_dir,
+                                    )
+                                    for url in urls
+                                ]
+                        print("Gather for ", value)
+
+                        await asyncio.gather(*coros, True)
+
+                        # process http pushes
+                        process_http_pushes(client=client, include=include, output_dir=output_dir)
+                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                except TypeError:
+                    print("Type Error occured")
+                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                    continue
+        elif i == 8: 
         elif i == 9:
             try:
                 async with connect(
