@@ -558,7 +558,7 @@ async def main(
         elif i == 5:
             # Sending HTTP2 Settings with some value
             dict_http2_settings = {0x1: 4096, 0x2: 0, 0x3: 2, 0x4: 256, 0x5: 256, 0x25: 123}
-            for key, value in dict_http2_settings:
+            for key, value in dict_http2_settings.items():
                 print("Start Key:Value", key, ":", value)
                 MORE_SETTINGS[key] = value
                 async with connect(
