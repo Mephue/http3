@@ -349,6 +349,7 @@ async def perform_http_request_corrupt(
     include: bool,
     output_dir: Optional[str],
 ) -> None:
+    print("AFTER CALL")
     # perform request
     start = time.time()
     if data is not None:
@@ -363,9 +364,11 @@ async def perform_http_request_corrupt(
         )
         method = "POST"
     else:
+        print("BEFORE GET")
         http_events = await client.get(url)
         method = "GET"
     elapsed = time.time() - start
+    print("AFTER GET")
 
     # print speed
     octets = 0
@@ -564,41 +567,37 @@ async def main(
             print("Values in List ", list_bytes)
             
             for value in list_bytes:
-                try:
-                    print("Start Value", value)
-                    SETTINGS_VALUE = value
-                    async with connect(
-                        host,
-                        port,
-                        configuration=configuration,
-                        create_protocol=HttpClientCorruptT4,
-                        session_ticket_handler=save_session_ticket,
-                        local_port=local_port,
-                        wait_connected=not zero_rtt,
-                    ) as client:
-                        client = cast(HttpClientCorruptT4, client)
+                print("Start Value", value)
+                SETTINGS_VALUE = value
+                async with connect(
+                    host,
+                    port,
+                    configuration=configuration,
+                    create_protocol=HttpClientCorruptT4,
+                    session_ticket_handler=save_session_ticket,
+                    local_port=local_port,
+                    wait_connected=not zero_rtt,
+                ) as client:
+                    client = cast(HttpClientCorruptT4, client)
 
-                        coros = [
-                                    perform_http_request_corrupt(
-                                        client=client,
-                                        url=url,
-                                        data=data,
-                                        include=include,
-                                        output_dir=output_dir,
-                                    )
-                                    for url in urls
-                                ]
-                        print("Gather for ", value)
+                    coros = [
+                                perform_http_request_corrupt(
+                                    client=client,
+                                    url=url,
+                                    data=data,
+                                    include=include,
+                                    output_dir=output_dir,
+                                )
+                                for url in urls
+                            ]
+                    print("Gather for ", value)
 
-                        await asyncio.gather(*coros, True)
+                    await asyncio.gather(*coros)
 
-                        # process http pushes
-                        process_http_pushes(client=client, include=include, output_dir=output_dir)
-                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
-                except TypeError:
-                    print("Type Error occured")
-                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
-                    continue
+                    # process http pushes
+                    process_http_pushes(client=client, include=include, output_dir=output_dir)
+                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+
         elif i == 5:
             # Sending HTTP2 Settings with some value
             dict_http2_settings = {0x1: 4096, 0x2: 0, 0x3: 2, 0x4: 256, 0x5: 256, 0x25: 123}
