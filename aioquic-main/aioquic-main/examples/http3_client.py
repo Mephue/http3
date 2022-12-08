@@ -659,7 +659,8 @@ async def main(
                     print("Type Error occured")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
-        elif i == 8: 
+        elif i == 8:
+            continue 
         elif i == 9:
             try:
                 async with connect(
