@@ -20,7 +20,10 @@ def encode_settings_T4(settings: dict, settings_value, duplicate: int = 0) -> by
         if setting == Setting.MAX_FIELD_SECTION_SIZE:
             for i in range(0,1 + duplicate):
                 buf.push_uint_var(setting)
-                buf.push_bytes(settings_value)
+                try:
+                    buf.push_bytes(settings_value)
+                except:
+                    buf.push_uint_var(settings_value)
         else:
             buf.push_uint_var(setting)
             buf.push_uint_var(value)
