@@ -149,6 +149,7 @@ class HttpClient(QuicConnectionProtocol):
         """
         Perform a GET request.
         """
+        print("GET IS CALLED")
         return await self._request(
             HttpRequest(method="GET", url=URL(url), headers=headers)
         )
@@ -255,6 +256,12 @@ class HttpClient(QuicConnectionProtocol):
 class HttpClientCorruptT4(HttpClient):
     def __init__(self, *args, **kwargs) -> None:
         super(HttpClient,  self).__init__(*args, **kwargs)
+
+        self.pushes: Dict[int, Deque[H3Event]] = {}
+        self._http: Optional[HttpConnection] = None
+        self._request_events: Dict[int, Deque[H3Event]] = {}
+        self._request_waiter: Dict[int, asyncio.Future[Deque[H3Event]]] = {}
+        self._websockets: Dict[int, WebSocket] = {}
 
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
@@ -627,7 +634,7 @@ async def main(
                         await asyncio.gather(*coros, True)
                     except TypeError:
                         time.sleep(5)
-
+                        
                     # process http pushes
                     process_http_pushes(client=client, include=include, output_dir=output_dir)
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
