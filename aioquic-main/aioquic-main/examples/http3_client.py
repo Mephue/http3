@@ -369,7 +369,7 @@ async def perform_http_request_corrupt(
         http_events = await client.get(url)
         method = "GET"
     elapsed = time.time() - start
-
+    print("get done")
     # print speed
     octets = 0
     for http_event in http_events:
