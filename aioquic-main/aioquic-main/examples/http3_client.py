@@ -245,11 +245,13 @@ class HttpClient(QuicConnectionProtocol):
             self._http.send_data(
                 stream_id=stream_id, data=request.content, end_stream=True
             )
-        print("_request2")
+        print("_request 2")
         waiter = self._loop.create_future()
+        print("_request 3")
         self._request_events[stream_id] = deque()
         self._request_waiter[stream_id] = waiter
         self.transmit()
+        print("_request 4")
 
         return await asyncio.shield(waiter)
 
