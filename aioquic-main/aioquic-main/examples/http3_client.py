@@ -342,6 +342,50 @@ async def perform_http_request(
                 http_events=http_events, include=include, output_file=output_file
             )
 
+async def perform_http_request_corrupt(
+    client: HttpClientCorruptT4,
+    url: str,
+    data: Optional[str],
+    include: bool,
+    output_dir: Optional[str],
+) -> None:
+    # perform request
+    start = time.time()
+    if data is not None:
+        data_bytes = data.encode()
+        http_events = await client.post(
+            url,
+            data=data_bytes,
+            headers={
+                "content-length": str(len(data_bytes)),
+                "content-type": "application/x-www-form-urlencoded",
+            },
+        )
+        method = "POST"
+    else:
+        http_events = await client.get(url)
+        method = "GET"
+    elapsed = time.time() - start
+
+    # print speed
+    octets = 0
+    for http_event in http_events:
+        if isinstance(http_event, DataReceived):
+            octets += len(http_event.data)
+    logger.info(
+        "Response received for %s %s : %d bytes in %.1f s (%.3f Mbps)"
+        % (method, urlparse(url).path, octets, elapsed, octets * 8 / elapsed / 1000000)
+    )
+
+    # output response
+    if output_dir is not None:
+        output_path = os.path.join(
+            output_dir, os.path.basename(urlparse(url).path) or "index.html"
+        )
+        with open(output_path, "wb") as output_file:
+            write_response(
+                http_events=http_events, include=include, output_file=output_file
+            )
 
 def process_http_pushes(
     client: HttpClient,
@@ -535,7 +579,7 @@ async def main(
                         client = cast(HttpClientCorruptT4, client)
 
                         coros = [
-                                    perform_http_request(
+                                    perform_http_request_corrupt(
                                         client=client,
                                         url=url,
                                         data=data,
@@ -574,7 +618,7 @@ async def main(
                     client = cast(HttpClientCorruptT4, client)
 
                     coros = [
-                                perform_http_request(
+                                perform_http_request_corrupt(
                                     client=client,
                                     url=url,
                                     data=data,
