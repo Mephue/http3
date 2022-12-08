@@ -629,9 +629,11 @@ async def main(
                                 for url in urls
                             ]
                     print("Gather for ", value)
-
-                    await asyncio.gather(*coros, True)
-
+                    try:
+                        await asyncio.gather(*coros, True)
+                    except TypeError:
+                        time.sleep(5)
+                        
                     # process http pushes
                     process_http_pushes(client=client, include=include, output_dir=output_dir)
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
