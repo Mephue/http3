@@ -667,7 +667,7 @@ async def main(
                 print("Gather for ", value)
 
                 try:
-                    await asyncio.gather(*coros)
+                    await asyncio.gather(*coros, True)
                 except TypeError:
                     print("Type Error occured")
                     time.sleep(5)
