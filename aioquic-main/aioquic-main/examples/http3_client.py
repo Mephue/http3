@@ -569,7 +569,7 @@ async def main(
             for value in list_bytes:
                 try:
                     print("Start Value", value)
-                    SETTINGS_VALUE = value
+                    SETTINGS_VALUE = 2048
                     async with connect(
                         host,
                         port,
