@@ -39,7 +39,7 @@ except ImportError:
 
 logger = logging.getLogger("client")
 
-HttpConnection = Union[H0Connection, H3Connection]
+HttpConnection = Union[H0Connection, H3Connection, H3ConnectionChild]
 
 USER_AGENT = "aioquic/" + aioquic.__version__
 
