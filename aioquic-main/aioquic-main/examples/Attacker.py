@@ -38,11 +38,12 @@ def encode_frame_T7(frame_type: int, frame_data: bytes, length_offset: int) -> b
     return buf.data
 
 class H3ConnectionChild(H3Connection):
-    def __init__(self, quic: QuicConnection,  settings_value, more_settings: dict = {},enable_webtransport: bool = False, duplicate: int = 0, length_offset: int = 0) -> None:
+    def __init__(self, quic: QuicConnection,  settings_value, more_settings: dict = {},enable_webtransport: bool = False, duplicate: int = 0, length_offset: int = 0, wrong_frames: dict = {}) -> None:
         self._settings_value = settings_value
         self._more_settings = more_settings
         self._duplicate = duplicate
         self._length_offset = length_offset
+        self._wrong_frames = wrong_frames
         super().__init__(quic=quic, enable_webtransport=enable_webtransport)
 
     def _init_connection(self) -> None:
@@ -58,6 +59,14 @@ class H3ConnectionChild(H3Connection):
                 self._local_control_stream_id,
                 encode_frame(FrameType.MAX_PUSH_ID, encode_uint_var(self._max_push_id)),
             )
+        
+        # Wrong Frames for T9
+        if self._wrong_frames["controlstream-data"] == True:
+            self.send_data(self._local_control_stream_id, bytes(0), False)
+
+        if self._wrong_frames["controlstream-headers"] == True:
+            send_headers_corrupt(self, self._local_control_stream_id)
+
 
         # create encoder and decoder streams
         self._local_encoder_stream_id = self._create_uni_stream(
@@ -172,3 +181,43 @@ def send_headers_settings(
     )
 
 
+def send_settings_corrupt(
+    conn: H3Connection, stream_id: int, end_stream: bool = False
+) -> None:
+
+    # Sending SETTINGS Frame
+    conn._sent_settings = conn._get_local_settings()
+    conn._quic.send_stream_data(
+        stream_id,
+        encode_frame(FrameType.SETTINGS, encode_settings(conn._sent_settings)),
+    )
+
+def send_headers_corrupt(
+    conn: H3Connection, stream_id: int, end_stream: bool = False
+) -> None:
+
+    headers=[
+        (b":method", "GET".encode()),
+        (b":scheme", "SOMEURL".encode()),
+        (b":authority", "AUTHORITY".encode()),
+        (b":path", "FULLPATH".encode()),
+        (b"user-agent", "USER_AGENT".encode()),
+    ]
+
+    frame_data = conn._encode_headers(stream_id, headers)
+
+
+    # Send headers
+    conn._quic.send_stream_data(
+        stream_id, encode_frame(FrameType.HEADERS, frame_data), end_stream
+    )
+
+
+def send_goaway_corrupt(
+    conn: H3Connection, stream_id: int, headers: Headers, end_stream: bool = False
+) -> None:
+
+    # Send headers
+    conn._quic.send_stream_data(
+        stream_id, encode_frame(FrameType.GOAWAY, bytes(0)), end_stream
+    )
