@@ -593,7 +593,7 @@ async def main(
                                 ]
                         print("Gather for ", value)
 
-                        await asyncio.gather(*coros, True)
+                        await asyncio.gather(*coros)
 
                         # process http pushes
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
@@ -666,7 +666,7 @@ async def main(
                         ]
                 print("Gather for ", value)
 
-                await asyncio.gather(*coros, True)
+                await asyncio.gather(*coros)
 
                 # process http pushes
                 process_http_pushes(client=client, include=include, output_dir=output_dir)
