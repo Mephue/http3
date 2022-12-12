@@ -29,7 +29,7 @@ from aioquic.quic.logger import QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
 # MY IMPORTS
-from Attacker import send_headers_settings, H3ConnectionChild
+from Attacker import send_headers_settings, H3ConnectionChild, send_goaway_corrupt, send_headers_corrupt, send_settings_corrupt
 import ctypes
 
 try:
@@ -48,6 +48,7 @@ SETTINGS_VALUE = 2048
 MORE_SETTINGS = {}
 DUPLICATE = 0
 LENGTH_OFFSET = 0
+WRONG_FRAMES = {}
 
 class URL:
     def __init__(self, url: str) -> None:
@@ -268,16 +269,20 @@ class HttpClientCorruptT4(HttpClient):
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
         else:
-            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE, more_settings=MORE_SETTINGS, duplicate=DUPLICATE)
+            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE, more_settings=MORE_SETTINGS, duplicate=DUPLICATE, wrong_frames=WRONG_FRAMES)
 
 
-class HttpClientCorruptT9(HttpClient):
+class HttpClientCorruptT9(HttpClientCorruptT4):
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
+        
+        if WRONG_FRAMES["requeststream-settings"] == True:
+            send_settings_corrupt(self._http, stream_id=stream_id)
+        if WRONG_FRAMES["requeststream-goaway"] == True:
+            send_goaway_corrupt(self._http, stream_id=stream_id)
 
         # Trying to send SETTINGS and HEADER Frame on Request Stream
-        send_headers_settings(self._http,
-            stream_id=stream_id,
+        self._http.send_headers(stream_id=stream_id,
             headers=[
                 (b":method", request.method.encode()),
                 (b":scheme", request.url.scheme.encode()),
@@ -288,10 +293,9 @@ class HttpClientCorruptT9(HttpClient):
             + [(k.encode(), v.encode()) for (k, v) in request.headers.items()],
             end_stream=not request.content,
         )
-        if request.content:
-            self._http.send_data(
-                stream_id=stream_id, data=request.content, end_stream=True
-            )
+
+        send_settings_corrupt(self._http, stream_id=stream_id)
+        send_goaway_corrupt(self._http, stream_id=stream_id)
 
         waiter = self._loop.create_future()
         self._request_events[stream_id] = deque()
@@ -534,6 +538,7 @@ async def main(
     global MORE_SETTINGS
     global SETTINGS_VALUE 
     global LENGTH_OFFSET
+    global WRONG_FRAMES
 
     for i in range (1, 10):
         print("Starting Test T" + str(i) + "\r\n" )
@@ -541,6 +546,7 @@ async def main(
         MORE_SETTINGS = {}
         SETTINGS_VALUE = 2048
         LENGTH_OFFSET = 0
+        WRONG_FRAMES = {"requeststream-settings": False, "requeststream-goaway": False, "controlstream-data": False, "controlstream-settings": False}
 
         # Execute Test for Testround
         if i == 1:
@@ -718,6 +724,10 @@ async def main(
         elif i == 8:
             continue 
         elif i == 9:
+            for key, value in WRONG_FRAMES.items():
+                
+            
+
             try:
                 async with connect(
                     host,
@@ -749,9 +759,7 @@ async def main(
             except TypeError:
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 continue
-            except NameError:
-                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
-                continue
+
 
 
 if __name__ == "__main__":
