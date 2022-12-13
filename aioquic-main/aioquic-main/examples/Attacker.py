@@ -108,10 +108,6 @@ class H3ConnectionChild(H3Connection):
         :param data: The data to send.
         :param end_stream: Whether to end the stream.
         """
-        # check DATA frame is allowed
-        stream = self._get_or_create_stream(stream_id)
-        if stream.headers_send_state != HeadersState.AFTER_HEADERS:
-            raise FrameUnexpected("DATA frame is not allowed in this state")
 
         # log frame
         if self._quic_logger is not None:
