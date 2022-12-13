@@ -214,7 +214,7 @@ def send_headers_corrupt(
 
 
 def send_goaway_corrupt(
-    conn: H3Connection, stream_id: int, headers: Headers, end_stream: bool = False
+    conn: H3Connection, stream_id: int, end_stream: bool = False
 ) -> None:
 
     # Send headers
