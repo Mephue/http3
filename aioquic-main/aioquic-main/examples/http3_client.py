@@ -150,7 +150,6 @@ class HttpClient(QuicConnectionProtocol):
         """
         Perform a GET request.
         """
-        print("GET IS CALLED")
         return await self._request(
             HttpRequest(method="GET", url=URL(url), headers=headers)
         )
@@ -229,7 +228,6 @@ class HttpClient(QuicConnectionProtocol):
 
     async def _request(self, request: HttpRequest) -> Deque[H3Event]:
         stream_id = self._quic.get_next_available_stream_id()
-        print("_request 1")
         self._http.send_headers(
             stream_id=stream_id,
             headers=[
@@ -246,13 +244,10 @@ class HttpClient(QuicConnectionProtocol):
             self._http.send_data(
                 stream_id=stream_id, data=request.content, end_stream=True
             )
-        print("_request 2")
         waiter = self._loop.create_future()
-        print("_request 3")
         self._request_events[stream_id] = deque()
         self._request_waiter[stream_id] = waiter
         self.transmit()
-        print("_request 4")
 
         return await asyncio.shield(waiter)
 
