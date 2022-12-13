@@ -543,7 +543,7 @@ async def main(
         MORE_SETTINGS = {}
         SETTINGS_VALUE = 2048
         LENGTH_OFFSET = 0
-        WRONG_FRAMES = {"requeststream-settings": False, "requeststream-goaway": False, "controlstream-data": False, "controlstream-settings": False}
+        WRONG_FRAMES = {"requeststream-settings": False, "requeststream-goaway": False, "controlstream-data": False, "controlstream-headers": False}
 
         # Execute Test for Testround
         if i == 1:
