@@ -749,12 +749,13 @@ async def main(
                                 for url in urls
                             ]
 
-                        await asyncio.gather(*coros, True)
+                        await asyncio.gather(*coros)
 
                         # process http pushes
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 except TypeError:
+                    print("Type Error occured")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
 

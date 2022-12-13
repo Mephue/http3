@@ -86,7 +86,7 @@ class H3ConnectionChild(H3Connection):
             Setting.QPACK_BLOCKED_STREAMS: self._blocked_streams,
             Setting.ENABLE_CONNECT_PROTOCOL: 1,
             Setting.DUMMY: 1,
-            Setting.MAX_FIELD_SECTION_SIZE: "Let me create a Crash please"
+            Setting.MAX_FIELD_SECTION_SIZE: 2048
         }
 
         settings = {**settings, **self._more_settings}
