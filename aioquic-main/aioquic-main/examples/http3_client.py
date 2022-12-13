@@ -538,7 +538,10 @@ async def main(
     global WRONG_FRAMES
 
     for i in range (1, 10):
-        print("Starting Test T" + str(i) + "\r\n" )
+        print("-" * 25)
+        print("-" * 5, " Starting Test T", str(i) , " ", "-" * 5, "\r\n")
+        print("-" * 25)
+
         DUPLICATE = 0
         MORE_SETTINGS = {}
         SETTINGS_VALUE = 2048
@@ -553,12 +556,12 @@ async def main(
         elif i == 3:
             continue
         elif i == 4:
+            print("Sending SETTINGS Frame with corrupt MAX_FIELD_SECTION_SIZE")
             list_bytes = []
             list_integer = [2147483648, 4294967296,-4294967296,-2147483648]
             list_float = [1.012, 100.3, 1024.7]
             list_strings = ["x"*10, "x"*100, "x"*250, "x"*500, "x"*1000, "x"*2000, "A unicode \u018e string \xf1"]
             for some_integer in list_integer:
-                print("Check Integer: ", some_integer)
                 if some_integer > 0:
                     list_bytes.append(bytes(ctypes.c_int(some_integer)))
                 else:
@@ -566,12 +569,10 @@ async def main(
 
             for some_string in list_strings:
                 list_bytes.append(some_string.encode('utf-8'))
-            
-            print("Values in List ", list_bytes)
-            
+                        
             for value in list_bytes:
                 try:
-                    print("Type:", type(value), ":Start Value", value)
+                    print("-" * 5, " Testing Value: ", value, " ", "-" * 5, "\r\n")
                     SETTINGS_VALUE = value
                     async with connect(
                         host,
@@ -594,7 +595,7 @@ async def main(
                                     )
                                     for url in urls
                                 ]
-                        print("Gather for ", value)
+                        print("Response for value: ", value, "\r\n")
 
                         await asyncio.gather(*coros, True)
 
@@ -602,15 +603,17 @@ async def main(
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 except TypeError:
-                    print("Type Error occured")
-                    time.sleep(5)
+                    print("Aioquic Error occured, when handling Attack - Check Wireshark! \r\n")
+                    time.sleep(2)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
         elif i == 5:
             # Sending HTTP2 Settings with some value
+            print("Sending HTTP2 Settings in SETTINGS Frame")
+
             dict_http2_settings = {0x1: 4096, 0x2: 0, 0x3: 2, 0x4: 256, 0x5: 256, 0x25: 123}
             for key, value in dict_http2_settings.items():
-                print("Start Key:Value", key, ":", value)
+                print("-" * 5, "Start Key:Value", key, ":", value, " ", "-" * 5, "\r\n")
                 MORE_SETTINGS.clear()
                 MORE_SETTINGS[key] = value
                 async with connect(
@@ -634,17 +637,21 @@ async def main(
                                 )
                                 for url in urls
                             ]
-                    print("Gather for ", value)
+                    print("Response for value: ", value, "\r\n")
                     try:
                         await asyncio.gather(*coros)
                     except TypeError:
-                        time.sleep(5)
-                        
+                        time.sleep(2)
+                        print("Aioquic Error occured, when handling Attack - Check Wireshark! \r\n")
+                        client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+
                     # process http pushes
                     process_http_pushes(client=client, include=include, output_dir=output_dir)
                 client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
         elif i == 6:
             # Duplicate Setting in Settings Frame
+            print("Sending Duplicate MAX_FIELD_SECTION_SIZE in SETTINGS Frame")
+
             DUPLICATE = 1
             async with connect(
                 host,
@@ -667,13 +674,13 @@ async def main(
                             )
                             for url in urls
                         ]
-                print("Gather for ", value)
+                print("Response for duplicate: \r\n")
 
                 try:
                     await asyncio.gather(*coros, True)
                 except TypeError:
-                    print("Type Error occured")
-                    time.sleep(5)
+                    time.sleep(2)
+                    print("Aioquic Error occured, when handling Attack - Check Wireshark! \r\n")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
                 # process http pushes
@@ -681,10 +688,11 @@ async def main(
             client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
         elif i == 7:
             list_offsets = [-1, -8, -16, 1, 8, 16, 4096]
+            print("Manipulating Frame Size with OFFSET and sending not equal content-length header")
 
             for value in list_offsets:
                 try:
-                    print("Start Offset", value)
+                    print("-" * 5, " Testing Offset: ", value, " ", "-" * 5, "\r\n")
                     LENGTH_OFFSET = value
                     async with connect(
                         host,
@@ -707,7 +715,7 @@ async def main(
                                     )
                                     for url in urls
                                 ]
-                        print("Gather for ", value)
+                        print("Response for Offset: ", value, "\r\n")
 
                         await asyncio.gather(*coros)
 
@@ -715,16 +723,20 @@ async def main(
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 except TypeError:
-                    print("Type Error occured")
+                    time.sleep(2)
+                    print("Aioquic Error occured, when handling Attack - Check Wireshark! \r\n")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
         elif i == 8:
             continue 
         elif i == 9:
+            print("Sending Frames on not supported Streams")
+
             wrong_frames_base = WRONG_FRAMES
             for key in wrong_frames_base:
                 WRONG_FRAMES = wrong_frames_base
                 WRONG_FRAMES[key] = True
+                print("-" * 5, " Testing following Stream-Frame Combo: ", key, " ", "-" * 5, "\r\n")
 
                 try:
                     async with connect(
@@ -749,15 +761,21 @@ async def main(
                                 for url in urls
                             ]
 
+                        print("Response for Frame: ", key, "\r\n")
+
                         await asyncio.gather(*coros, True)
 
                         # process http pushes
                         process_http_pushes(client=client, include=include, output_dir=output_dir)
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                 except TypeError:
-                    print("Type Error occured")
+                    time.sleep(2)
+                    print("Aioquic Error occured, when handling Attack - Check Wireshark! \r\n")
                     client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
                     continue
+        elif i == 10:
+            continue
+    print("-" * 5, "DONE!", "-" * 5)
 
 
 
