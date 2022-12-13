@@ -269,7 +269,7 @@ class HttpClientCorruptT4(HttpClient):
         if self._quic.configuration.alpn_protocols[0].startswith("hq-"):
             self._http = H0Connection(self._quic)
         else:
-            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE, more_settings=MORE_SETTINGS, duplicate=DUPLICATE, wrong_frames=WRONG_FRAMES)
+            self._http = H3ConnectionChild(self._quic, settings_value=SETTINGS_VALUE, more_settings=MORE_SETTINGS, duplicate=DUPLICATE, wrong_frames=WRONG_FRAMES, length_offset=LENGTH_OFFSET)
 
 
 class HttpClientCorruptT9(HttpClientCorruptT4):
@@ -293,9 +293,6 @@ class HttpClientCorruptT9(HttpClientCorruptT4):
             + [(k.encode(), v.encode()) for (k, v) in request.headers.items()],
             end_stream=not request.content,
         )
-
-        send_settings_corrupt(self._http, stream_id=stream_id)
-        send_goaway_corrupt(self._http, stream_id=stream_id)
 
         waiter = self._loop.create_future()
         self._request_events[stream_id] = deque()
@@ -704,7 +701,7 @@ async def main(
                                     perform_http_request(
                                         client=client,
                                         url=url,
-                                        data=data,
+                                        data="some data, some more and even more data :)",
                                         include=include,
                                         output_dir=output_dir,
                                     )
@@ -724,41 +721,42 @@ async def main(
         elif i == 8:
             continue 
         elif i == 9:
-            for key, value in WRONG_FRAMES.items():
-                
-            
+            wrong_frames_base = WRONG_FRAMES
+            for key in wrong_frames_base:
+                WRONG_FRAMES = wrong_frames_base
+                WRONG_FRAMES[key] = True
 
-            try:
-                async with connect(
-                    host,
-                    port,
-                    configuration=configuration,
-                    create_protocol=HttpClientCorruptT9,
-                    session_ticket_handler=save_session_ticket,
-                    local_port=local_port,
-                    wait_connected=not zero_rtt,
-                ) as client:
-                    client = cast(HttpClientCorruptT9, client)
+                try:
+                    async with connect(
+                        host,
+                        port,
+                        configuration=configuration,
+                        create_protocol=HttpClientCorruptT9,
+                        session_ticket_handler=save_session_ticket,
+                        local_port=local_port,
+                        wait_connected=not zero_rtt,
+                    ) as client:
+                        client = cast(HttpClientCorruptT9, client)
 
-                    coros = [
-                            perform_http_request(
-                                client=client,
-                                url=url,
-                                data=data,
-                                include=include,
-                                output_dir=output_dir,
-                            )
-                            for url in urls
-                        ]
+                        coros = [
+                                perform_http_request(
+                                    client=client,
+                                    url=url,
+                                    data=data,
+                                    include=include,
+                                    output_dir=output_dir,
+                                )
+                                for url in urls
+                            ]
 
-                    await asyncio.gather(*coros, True)
+                        await asyncio.gather(*coros, True)
 
-                    # process http pushes
-                    process_http_pushes(client=client, include=include, output_dir=output_dir)
-                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
-            except TypeError:
-                client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
-                continue
+                        # process http pushes
+                        process_http_pushes(client=client, include=include, output_dir=output_dir)
+                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                except TypeError:
+                    client._quic.close(error_code=ErrorCode.H3_NO_ERROR)
+                    continue
 
 
 
