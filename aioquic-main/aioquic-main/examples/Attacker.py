@@ -113,13 +113,6 @@ class H3ConnectionChild(H3Connection):
         else:
             stream.headers_send_state = HeadersState.AFTER_TRAILERS
 
-        # Sending SETTINGS Frame on Request Stream to create a crash:
-        self._sent_settings = self._get_local_settings()
-        self._quic.send_stream_data(
-            stream_id,
-            encode_frame(FrameType.SETTINGS, encode_settings(self._sent_settings, self._cap_buffer)),
-        )
-
         # Send headers
         self._quic.send_stream_data(
             stream_id, encode_frame_T7(FrameType.HEADERS, frame_data, self._length_offset), end_stream
