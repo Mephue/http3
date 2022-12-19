@@ -532,7 +532,8 @@ async def main(
     global LENGTH_OFFSET
     global WRONG_FRAMES
 
-    for i in range (7, 7):
+    for j in range (0, 1):
+        i = 7
         print("-" * 25)
         print("-" * 5, " Starting Test T", str(i) , " ", "-" * 5, "\r\n")
         print("-" * 25)
